@@ -1,5 +1,7 @@
 package api.model;
 
+import java.util.Objects;
+
 public class Student {
 
     private Integer id;
@@ -57,6 +59,39 @@ public class Student {
 
     public void setCourse(String course) {
         this.course = course;
+    }
+    
+    @Override
+    public String toString() {
+        return "Student{" +
+            "id=" + id +
+            ", name='" + name + '\'' +
+            ", email='" + email + '\'' +
+            ", registration='" + registration + '\'' +
+            ", course='" + course + '\'' +
+            '}';
+   }
+   
+   @Override
+   public boolean equals(Object object) {
+
+	if (this == object) {
+	        return true;
+	}
+
+    	if (object == null || getClass() != object.getClass()) {
+        	return false;
+    	}
+
+    	Student student = (Student) object;
+
+    	return Objects.equals(id, student.id);
+    }
+    	
+    
+   @Override
+   public int hashCode() {
+    	return Objects.hash(id);
     }
 
 }
