@@ -5,34 +5,10 @@ import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 public class StudentHandler implements HttpHandler {
 
-    private final List<Student> students = new ArrayList<>();
-
-    private int nextId = 1;
-
-    public StudentHandler() {
-
-        students.add(new Student(
-                nextId++,
-                "Lucas Almeida",
-                "lucas@email.com",
-                "20250001",
-                "Computer Science"
-        ));
-
-        students.add(new Student(
-                nextId++,
-                "Emma Johnson",
-                "emma@email.com",
-                "20250002",
-                "Software Engineering"
-        ));
-
-    }
+    private final StudentRepository repository = new StudentRepository();
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -74,7 +50,7 @@ public class StudentHandler implements HttpHandler {
         if (path.equals("/students")) {
 
             String json = JsonUtil.getMapper()
-                    .writeValueAsString(students);
+                    .writeValueAsString(repository.findAll());
 
             sendResponse(exchange, 200, json);
 
@@ -98,23 +74,21 @@ public class StudentHandler implements HttpHandler {
 
             int id = Integer.parseInt(parts[2]);
 
-            for (Student student : students) {
+            Student student = repository.findById(id);
 
-                if (student.getId() == id) {
+            if (student == null) {
 
-                    String json = JsonUtil.getMapper()
-                            .writeValueAsString(student);
+                sendResponse(exchange, 404,
+                        "{\"message\":\"Student not found\"}");
 
-                    sendResponse(exchange, 200, json);
-
-                    return;
-
-                }
+                return;
 
             }
 
-            sendResponse(exchange, 404,
-                    "{\"message\":\"Student not found\"}");
+            String json = JsonUtil.getMapper()
+                    .writeValueAsString(student);
+
+            sendResponse(exchange, 200, json);
 
         } catch (NumberFormatException exception) {
 
@@ -135,12 +109,10 @@ public class StudentHandler implements HttpHandler {
         Student student = JsonUtil.getMapper()
                 .readValue(body, Student.class);
 
-        student.setId(nextId++);
-
-        students.add(student);
+        Student createdStudent = repository.create(student);
 
         String json = JsonUtil.getMapper()
-                .writeValueAsString(student);
+                .writeValueAsString(createdStudent);
 
         sendResponse(exchange, 201, json);
 
@@ -172,28 +144,21 @@ public class StudentHandler implements HttpHandler {
                             Student.class
                     );
 
-            for (Student student : students) {
+            Student student = repository.update(id, updatedStudent);
 
-                if (student.getId() == id) {
+            if (student == null) {
 
-                    student.setName(updatedStudent.getName());
-                    student.setEmail(updatedStudent.getEmail());
-                    student.setRegistration(updatedStudent.getRegistration());
-                    student.setCourse(updatedStudent.getCourse());
+                sendResponse(exchange, 404,
+                        "{\"message\":\"Student not found\"}");
 
-                    String json = JsonUtil.getMapper()
-                            .writeValueAsString(student);
-
-                    sendResponse(exchange, 200, json);
-
-                    return;
-
-                }
+                return;
 
             }
 
-            sendResponse(exchange, 404,
-                    "{\"message\":\"Student not found\"}");
+            String json = JsonUtil.getMapper()
+                    .writeValueAsString(student);
+
+            sendResponse(exchange, 200, json);
 
         } catch (NumberFormatException exception) {
 
@@ -224,24 +189,19 @@ public class StudentHandler implements HttpHandler {
 
             int id = Integer.parseInt(parts[2]);
 
-            for (Student student : students) {
+            boolean deleted = repository.delete(id);
 
-                if (student.getId() == id) {
+            if (!deleted) {
 
-                    students.remove(student);
+                sendResponse(exchange, 404,
+                        "{\"message\":\"Student not found\"}");
 
-                    exchange.sendResponseHeaders(204, -1);
-
-                    exchange.close();
-
-                    return;
-
-                }
+                return;
 
             }
 
-            sendResponse(exchange, 404,
-                    "{\"message\":\"Student not found\"}");
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
 
         } catch (NumberFormatException exception) {
 
